@@ -1,17 +1,14 @@
 #!/bin/bash
 
-# Colors
+# Colors and spinner setup remain the same
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
-
-# Progress spinner characters
 SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
-# Function to show spinner
 show_spinner() {
     local pid=$1
     local delay=0.1
@@ -26,40 +23,55 @@ show_spinner() {
     printf "  \b\b"
 }
 
-# Function to print colored status messages
-print_status() {
-    echo -e "${BLUE}[*]${NC} $1"
+print_status() { echo -e "${BLUE}[*]${NC} $1"; }
+print_success() { echo -e "${GREEN}[+]${NC} $1"; }
+print_error() { echo -e "${RED}[-]${NC} $1"; }
+print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
+
+# Get confirmation mode
+get_confirmation_mode() {
+    while true; do
+        print_status "How would you like to handle confirmations?"
+        echo "1) Yes to all prompts (automatic)"
+        echo "2) Ask for each operation"
+        read -p "Enter choice [1/2]: " choice
+        case $choice in
+            1) CONFIRM_ALL=true; break;;
+            2) CONFIRM_ALL=false; break;;
+            *) print_error "Invalid choice";;
+        esac
+    done
 }
 
-print_success() {
-    echo -e "${GREEN}[+]${NC} $1"
+# Confirmation function
+confirm_action() {
+    if [ "$CONFIRM_ALL" = true ]; then
+        return 0
+    fi
+    read -p "Proceed with $1? [y/N] " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]]
 }
 
-print_error() {
-    echo -e "${RED}[-]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[!]${NC} $1"
-}
-
-# Check if script is run as root
+# Root check
 if [[ $EUID -ne 0 ]]; then
     print_error "This script must be run as root"
     exit 1
 fi
 
+get_confirmation_mode
+
 # DNF Configuration
-print_status "Configuring DNF..."
-DNF_CONF="/etc/dnf/dnf.conf"
+if confirm_action "DNF configuration update"; then
+    print_status "Configuring DNF..."
+    DNF_CONF="/etc/dnf/dnf.conf"
 
-# Backup existing configuration
-if [ -f "$DNF_CONF" ]; then
-    cp "$DNF_CONF" "${DNF_CONF}.backup"
-    print_success "Backup created: ${DNF_CONF}.backup"
-fi
+    if [ -f "$DNF_CONF" ]; then
+        cp "$DNF_CONF" "${DNF_CONF}.backup"
+        print_success "Backup created: ${DNF_CONF}.backup"
+    fi
 
-cat > "$DNF_CONF" << EOL
+    cat > "$DNF_CONF" << EOL
 [main]
 gpgcheck=True
 installonly_limit=2
@@ -70,77 +82,45 @@ max_parallel_downloads=10
 fastestmirror=true
 EOL
 
-if [ $? -eq 0 ]; then
-    print_success "DNF configuration updated successfully"
-else
-    print_error "Failed to update DNF configuration"
-    exit 1
+    [ $? -eq 0 ] && print_success "DNF configuration updated" || { print_error "DNF configuration failed"; exit 1; }
 fi
 
 # System update
-print_status "Updating system packages..."
-if dnf update -y; then
-    print_success "System update completed"
-else
-    print_warning "System update encountered some issues"
-    read -p "Continue with package installation? [y/N] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
+if confirm_action "system update"; then
+    print_status "Updating system..."
+    if [ "$CONFIRM_ALL" = true ]; then
+        dnf update -y
+    else
+        dnf update
     fi
+    [ $? -eq 0 ] && print_success "System updated" || print_warning "System update had issues"
 fi
 
-# Package list
+# Package installation
 packages=(
-    gcc
-    gcc-c++
-    jq
-    java-21-openjdk-headless
-    podman
-    git
-    zoxide
-    fzf
-    bat
-    fish
-    tmux
-    aria2
-    fastfetch
-    alacritty
-    distrobox
-    gnome-boxes
-    vlc
-    libreoffice
-    okular
-    qalculate-qt
-    qbittorrent
-    kile
-    kate
-    kwrite
-    gwenview
+    gcc gcc-c++ jq java-21-openjdk-headless podman git
+    zoxide fzf bat fish tmux aria2 fastfetch alacritty
+    distrobox gnome-boxes vlc libreoffice okular
+    qalculate-qt qbittorrent kile kate kwrite gwenview
     mediawriter
 )
 
-# Install packages
-print_status "Installing packages..."
-print_warning "This may take a while depending on your internet speed"
-
-if dnf install -y "${packages[@]}" & show_spinner $!; then
-    print_success "All packages installed successfully"
-else
-    print_error "Some packages failed to install"
-    exit 1
+if confirm_action "package installation"; then
+    print_status "Installing packages..."
+    if [ "$CONFIRM_ALL" = true ]; then
+        dnf install -y "${packages[@]}" & show_spinner $!
+    else
+        dnf install "${packages[@]}"
+    fi
+    [ $? -eq 0 ] && print_success "Packages installed" || print_error "Some packages failed"
 fi
 
-print_success "Setup completed successfully"
+print_success "Setup completed"
 
-# Display final message with next steps
 cat << EOL
 
 ${GREEN}=== Next Steps ===${NC}
-1. Consider setting fish as your default shell:
-   ${BLUE}chsh -s $(which fish)${NC}
-2. Initialize zoxide for enhanced directory navigation:
-   ${BLUE}zoxide init fish${NC}
-3. Log out and back in for shell changes to take effect
-
+1. Set fish as default shell: ${BLUE}chsh -s $(which fish)${NC}
+2. Initialize zoxide: ${BLUE}zoxide init fish${NC}
+3. Log out and back in
 EOL
