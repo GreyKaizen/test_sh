@@ -19,10 +19,9 @@ fi
 echo -e "${YELLOW}Backing up current /etc/dnf/dnf.conf...${NC}"
 cp $DNF_CONF "$DNF_CONF.bak"
 
-# Update dnf.conf file
+# Update dnf.conf file with correct format
 echo -e "${YELLOW}Setting up /etc/dnf/dnf.conf...${NC}"
 
-# Ensure the section we are adding to dnf.conf is properly formatted
 {
   echo "# Custom DNF configuration"
   echo "[main]"
@@ -32,7 +31,7 @@ echo -e "${YELLOW}Setting up /etc/dnf/dnf.conf...${NC}"
   echo "best=False"
   echo "skip_if_unavailable=True"
   echo "max_parallel_downloads=10"
-  echo "fastestmirror=true"
+  echo "fastestmirror=True"
 } | sudo tee -a $DNF_CONF > /dev/null
 
 # Array of packages to be installed
