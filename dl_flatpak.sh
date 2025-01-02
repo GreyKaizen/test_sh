@@ -109,21 +109,19 @@ packages=(
 main() {
     check_distro || exit 1
     get_confirmation_mode
-    
+
     if confirm_action "flatpak setup"; then
         setup_flatpak
     fi
 
     print_status "Installing Flatpak packages..."
-    for pkg in "${packages[@]}"; do
-        if confirm_action "installing $pkg"; then
-            if [ "$CONFIRM_ALL" = true ]; then
-                flatpak install -y flathub "$pkg"
-            else
-                flatpak install flathub "$pkg"
-            fi
+    if confirm_action "installing all packages"; then
+        if [ "$CONFIRM_ALL" = true ]; then
+            flatpak install -y flathub "${packages[@]}"
+        else
+            flatpak install flathub "${packages[@]}"
         fi
-    done
+    fi
 
     print_success "Installation completed"
 }
