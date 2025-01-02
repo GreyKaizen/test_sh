@@ -9,26 +9,33 @@ RED='\033[0;31m'
 # Path to dnf.conf file
 DNF_CONF="/etc/dnf/dnf.conf"
 
+# Check if script is run with sudo privileges
+if [[ $EUID -ne 0 ]]; then
+    echo -e "${RED}This script must be run as root!${NC}"
+    exit 1
+fi
+
 # Backup current dnf.conf
 echo -e "${YELLOW}Backing up current /etc/dnf/dnf.conf...${NC}"
 cp $DNF_CONF "$DNF_CONF.bak"
 
 # Update dnf.conf file
 echo -e "${YELLOW}Setting up /etc/dnf/dnf.conf...${NC}"
-cat <<EOL >> $DNF_CONF
-# see `man dnf.conf` for defaults and possible options
 
-[main]
-gpgcheck=True
-installonly_limit=2
-clean_requirements_on_remove=True
-best=False
-skip_if_unavailable=True
-max_parallel_downloads=10
-fastestmirror=true
-EOL
+# Ensure the section we are adding to dnf.conf is properly formatted
+{
+  echo "# Custom DNF configuration"
+  echo "[main]"
+  echo "gpgcheck=True"
+  echo "installonly_limit=2"
+  echo "clean_requirements_on_remove=True"
+  echo "best=False"
+  echo "skip_if_unavailable=True"
+  echo "max_parallel_downloads=10"
+  echo "fastestmirror=true"
+} | sudo tee -a $DNF_CONF > /dev/null
 
-# Array of packages
+# Array of packages to be installed
 packages=(
     "gcc"
     "gcc-c++"
