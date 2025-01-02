@@ -116,6 +116,8 @@ main() {
 
     print_status "Installing Flatpak packages..."
     if confirm_action "installing all packages"; then
+        echo "Adding Flathub"
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         if [ "$CONFIRM_ALL" = true ]; then
             flatpak install -y flathub "${packages[@]}"
         else
