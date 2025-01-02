@@ -14,7 +14,6 @@ print_success() { printf "${GREEN}[+]${NC} %s\n" "$1"; }
 print_error() { printf "${RED}[-]${NC} %s\n" "$1"; }
 print_warning() { printf "${YELLOW}[!]${NC} %s\n" "$1"; }
 
-# Process flags
 while getopts "yn" opt; do
     case $opt in
         y) CONFIRM_ALL=true ;;
@@ -23,7 +22,6 @@ while getopts "yn" opt; do
     esac
 done
 
-# Root check
 if [[ $EUID -ne 0 ]]; then
     print_error "This script must be run as root"
     exit 1
@@ -73,17 +71,26 @@ get_service_mode() {
 main() {
     get_confirmation_mode
 
-    if confirm_action "adding Docker repository"; then
-        print_status "Adding Docker repository..."
-        dnf config-manager --add-repo=https://download.docker.com/linux/fedora/docker-ce.repo
+    if confirm_action "installing DNF plugins core"; then
+        print_status "Installing DNF plugins core..."
+        if [ "$CONFIRM_ALL" = true ]; then
+            dnf install -y dnf-plugins-core
+        else
+            dnf install dnf-plugins-core
+        fi
     fi
 
-    if confirm_action "installing Docker"; then
+    if confirm_action "adding Docker repository"; then
+        print_status "Adding Docker repository..."
+        dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+    fi
+
+    if confirm_action "installing Docker packages"; then
         print_status "Installing Docker packages..."
         if [ "$CONFIRM_ALL" = true ]; then
-            dnf install -y docker-ce docker-ce-cli containerd.io
+            dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         else
-            dnf install docker-ce docker-ce-cli containerd.io
+            dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         fi
     fi
 
@@ -100,7 +107,7 @@ main() {
     if [ "$service_mode" != "none" ]; then
         print_status "Docker version:"
         docker --version
-        
+
         if confirm_action "running hello-world test"; then
             docker run hello-world
         fi
