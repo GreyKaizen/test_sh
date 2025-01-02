@@ -1,83 +1,94 @@
 #!/bin/bash
 
-# Define colors for UI
-NC='\033[0m'  # No color
-YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
+# Colors
 RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Path to dnf.conf file
-DNF_CONF="/etc/dnf/dnf.conf"
+# Function to print colored status messages
+print_status() {
+    echo -e "${BLUE}[*]${NC} $1"
+}
 
-# Check if script is run with sudo privileges
+print_success() {
+    echo -e "${GREEN}[+]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[-]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[!]${NC} $1"
+}
+
+# Check if script is run as root
 if [[ $EUID -ne 0 ]]; then
-    echo -e "${RED}This script must be run as root!${NC}"
+    print_error "This script must be run as root"
     exit 1
 fi
 
-# Backup current dnf.conf
-echo -e "${YELLOW}Backing up current /etc/dnf/dnf.conf...${NC}"
-cp $DNF_CONF "$DNF_CONF.bak"
+# DNF Configuration
+print_status "Configuring DNF..."
+DNF_CONF="/etc/dnf/dnf.conf"
 
-# Update dnf.conf file with correct format
-echo -e "${YELLOW}Setting up /etc/dnf/dnf.conf...${NC}"
+cat > "$DNF_CONF" << EOL
+[main]
+gpgcheck=True
+installonly_limit=2
+clean_requirements_on_remove=True
+best=False
+skip_if_unavailable=True
+max_parallel_downloads=10
+fastestmirror=true
+EOL
 
-{
-  echo "# Custom DNF configuration"
-  echo "[main]"
-  echo "gpgcheck=True"
-  echo "installonly_limit=2"
-  echo "clean_requirements_on_remove=True"
-  echo "best=False"
-  echo "skip_if_unavailable=True"
-  echo "max_parallel_downloads=10"
-  echo "fastestmirror=True"
-} | sudo tee -a $DNF_CONF > /dev/null
+if [ $? -eq 0 ]; then
+    print_success "DNF configuration updated successfully"
+else
+    print_error "Failed to update DNF configuration"
+    exit 1
+fi
 
-# Array of packages to be installed
+# Package list
 packages=(
-    "gcc"
-    "gcc-c++"
-    "jq"
-    "java-21-openjdk-headless"
-    "podman"
-    "git"
-    "zoxide"
-    "fzf"
-    "bat"
-    "fish"
-    "tmux"
-    "aria2"
-    "fastfetch"
-    "alacritty"
-    "distrobox"
-    "gnome-boxes"
-    "vlc"
-    "libreoffice"
-    "okular"
-    "qalculate-qt"
-    "qbittorrent"
-    "kile"
-    "kate"
-    "kwrite"
-    "gwenview"
+    gcc
+    gcc-c++
+    jq
+    java-21-openjdk-headless
+    podman
+    git
+    zoxide
+    fzf
+    bat
+    fish
+    tmux
+    aria2
+    fastfetch
+    alacritty
+    distrobox
+    gnome-boxes
+    vlc
+    libreoffice
+    okular
+    qalculate-qt
+    qbittorrent
+    kile
+    kate
+    kwrite
+    gwenview
     "fedora-media-writer"
 )
 
-# Prompt before starting the download
-echo -e "${GREEN}Preparing to install packages...${NC}"
-echo -e "${YELLOW}The following packages will be installed: ${NC}"
-for pkg in "${packages[@]}"; do
-    echo -e "${GREEN}- $pkg${NC}"
-done
-read -p "Proceed with installation? (y/n): " response
-if [[ ! "$response" =~ ^[Yy]$ ]]; then
-    echo -e "${RED}Installation aborted by user.${NC}"
+# Install packages
+print_status "Installing packages..."
+if dnf install -y "${packages[@]}"; then
+    print_success "All packages installed successfully"
+else
+    print_error "Some packages failed to install"
     exit 1
 fi
 
-# Install packages
-echo -e "${YELLOW}Installing packages...${NC}"
-sudo dnf install -y "${packages[@]}"
-
-echo -e "${GREEN}Installation complete!${NC}"
+print_success "Setup completed successfully"
