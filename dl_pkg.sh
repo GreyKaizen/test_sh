@@ -1,12 +1,21 @@
 #!/bin/bash
 
-# Colors and spinner setup remain the same
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Enable color output
+if [ -t 1 ]; then
+    RED=$(printf '\033[31m')
+    GREEN=$(printf '\033[32m')
+    YELLOW=$(printf '\033[33m')
+    BLUE=$(printf '\033[34m')
+    CYAN=$(printf '\033[36m')
+    NC=$(printf '\033[0m')
+else
+    RED=""
+    GREEN=""
+    YELLOW=""
+    BLUE=""
+    CYAN=""
+    NC=""
+fi
 SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 
 show_spinner() {
@@ -102,7 +111,7 @@ packages=(
     zoxide fzf bat fish tmux aria2 fastfetch alacritty
     distrobox gnome-boxes vlc libreoffice okular
     qalculate-qt qbittorrent kile kate kwrite gwenview
-    mediawriter
+    "fedora-media-writer"
 )
 
 if confirm_action "package installation"; then
@@ -117,10 +126,9 @@ fi
 
 print_success "Setup completed"
 
-cat << EOL
-
+printf "
 ${GREEN}=== Next Steps ===${NC}
 1. Set fish as default shell: ${BLUE}chsh -s $(which fish)${NC}
 2. Initialize zoxide: ${BLUE}zoxide init fish${NC}
 3. Log out and back in
-EOL
+\n"
