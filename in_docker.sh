@@ -53,12 +53,14 @@ confirm_action() {
 }
 
 get_service_mode() {
-    print_status "Docker service configuration:"
-    echo "1) Enable and start"
-    echo "2) Start only"
-    echo "3) No service configuration"
+    print_status "[+] "
     while true; do
-        read -p "Select option [1-3]: " service_choice
+        printf "%s" "" && read -p "
+        Docker service configuration:
+        1) Enable and start
+        2) Start only
+        3) No service configuration
+        Select option [1-3]: " service_choice
         case $service_choice in
             1) echo "enable_start"; break ;;
             2) echo "start_only"; break ;;
@@ -80,9 +82,16 @@ main() {
         fi
     fi
 
-    if confirm_action "adding Docker repository"; then
-        print_status "Adding Docker repository..."
-        dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+    if confirm_action "creating Docker repository file"; then
+        print_status "Creating Docker repository file..."
+        cat > /etc/yum.repos.d/docker-ce.repo << EOL
+[docker-ce-stable]
+name=Docker CE Stable - \$basearch
+baseurl=https://download.docker.com/linux/fedora/\$releasever/\$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/fedora/gpg
+EOL
     fi
 
     if confirm_action "installing Docker packages"; then
@@ -97,20 +106,18 @@ main() {
     service_mode=$(get_service_mode)
     case $service_mode in
         "enable_start")
-            systemctl enable --now docker
+            sudo systemctl enable --now docker
             ;;
         "start_only")
-            systemctl start docker
+            sudo systemctl start docker
             ;;
     esac
 
     if [ "$service_mode" != "none" ]; then
         print_status "Docker version:"
         docker --version
-
-        if confirm_action "running hello-world test"; then
-            docker run hello-world
-        fi
+        print_status "running hello-world test"
+        docker run hello-world
     fi
 
     print_success "Docker setup completed"
