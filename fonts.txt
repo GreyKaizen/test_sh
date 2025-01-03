@@ -1,0 +1,7 @@
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/CascadiaCode.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/FiraCode.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/Meslo.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/Noto.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/RobotoMono.zip
+https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/Ubuntu.zip
